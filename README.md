@@ -34,4 +34,27 @@ optional utilities and extensions to make the JupyterLite experience more enjoya
 
 For a template based on the Xeus kernel, see the [`jupyterlite/xeus-python-demo` repository](https://github.com/jupyterlite/xeus-python-demo)
 
+## R2 living drive (in progress)
 
+This site is being wired up to a Cloudflare R2 bucket (`jupyter-lite`) as a
+shared, living drive for notebooks and files. Connection details and the
+spike plan live in [docs/r2-drive.md](docs/r2-drive.md).
+
+- **S3 endpoint:** `https://85d6a5c660ec816b604c5308e69e9937.r2.cloudflarestorage.com`
+- **Bucket:** `jupyter-lite`
+
+No secret keys are stored in this repo. The R2 API token is created by the
+bucket owner in the Cloudflare dashboard and entered at runtime (browser
+settings for the spike, Worker secrets for the custom drive).
+
+## Open a notebook from a GitHub URL
+
+Append `?fromURL=` with a `raw.githubusercontent.com` link to open any
+public GitHub-hosted notebook (read-only copy in browser storage):
+
+```
+https://marcocaggioni.github.io/jupyterlite-r2/lab?fromURL=https://raw.githubusercontent.com/<user>/<repo>/<branch>/<path>.ipynb
+```
+
+Multiple `fromURL` values open multiple files; `fromURLToFolder=<folder>`
+places them in a folder.
