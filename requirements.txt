@@ -47,3 +47,7 @@ bqplot
 # (replaces the jupyterlab-github bridge, which is read-only AND broken in Lite;
 # raw.githubusercontent.com serves CORS headers, so ?fromURL= just works)
 jupyterlab-open-url-parameter==0.4.0
+# R2-backed living drive (spike): client-side S3 drive — endpoint -> R2,
+# credentials in Settings -> Credentials Provider (never in config).
+# Requires JupyterLab >= 4.2.5; CORS policy required on the bucket.
+jupydrive_s3==0.1.0
