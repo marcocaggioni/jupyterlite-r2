@@ -11,8 +11,6 @@ cloud storage instead of only in the browser.
 
 ## Architecture
 
-![Architecture diagram](https://raw.githubusercontent.com/marcocaggioni/jupyterlite-r2/main/docs/architecture.png)
-
 ```mermaid
 flowchart TD
     repo["GitHub repo<br/>marcocaggioni/jupyterlite-r2<br/>(source + jupyter-drive-s3 plugin)"]
