@@ -156,6 +156,10 @@ that one constant if your site lives elsewhere.
   default drive, addressed with unprefixed paths — the drive object is
   named `BrowserStorage`, but that name is not a registered additional
   drive). The R2 Drive Browser is unchanged and stays the default.
+- `jupyter-drive-s3` 0.1.3 (Nov 6, 2026): the Local Files panel's
+  restore/refresh is fire-and-forget instead of awaited inside the
+  default-file-browser activation — 0.1.2 left the whole app stuck on
+  "Loading JupyterLite..." whenever the local-drive listing stalled.
 
 ## GitHub side (frozen content)
 

@@ -279,8 +279,16 @@ const defaultFileBrowser: JupyterFrontEndPlugin<IDefaultFileBrowser> = {
     }
 
     // Restore the local browser's model state under its own id.
-    await localBrowser.model.restore(localBrowser.id);
-    await localBrowser.model.refresh();
+    // Fire-and-forget on purpose: this must never block the
+    // default-file-browser activation (and therefore app startup).
+    // In 0.1.2 these were awaited here and a stalled local-drive
+    // listing left the whole app stuck on "Loading JupyterLite...".
+    void localBrowser.model
+      .restore(localBrowser.id)
+      .then(() => localBrowser.model.refresh())
+      .catch(err => {
+        console.warn('Local Files browser failed to load', err);
+      });
 
     // Set attributes when adding the browser to the UI.
     defaultBrowser.node.setAttribute('role', 'region');
