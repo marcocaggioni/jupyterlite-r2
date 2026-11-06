@@ -719,10 +719,12 @@ namespace Private {
     let body: string | Blob;
     if (options.format === 'json') {
       body = JSON.stringify(options.content, null, 2);
-    } else if (
-      options.format === 'base64' &&
-      (fileFormat === 'base64' || fileType === 'PDF')
-    ) {
+    } else if (options.format === 'base64') {
+      // JupyterLab uploads every file as base64 — including notebooks,
+      // whose registered format here is 'text', not 'base64'. Decode
+      // whenever the content arrives as base64, or the bucket stores
+      // the base64 text instead of the real file and the notebook
+      // fails to open ("Unexpected token" on load).
       // Transform base64 encoding to a utf-8 array for saving and
       // storing in the bucket.
       const byteCharacters = atob(options.content);
