@@ -26,6 +26,41 @@ A JupyterLite site with two ways to get content:
 Details, the implementation, and how to install the drive plugin in your
 own JupyterLite: [docs/r2-drive.md](docs/r2-drive.md).
 
+## Architecture
+
+```mermaid
+flowchart TD
+    repo["GitHub repo<br/>marcocaggioni/jupyterlite-r2<br/>(source + jupyter-drive-s3 plugin)"]
+    actions["GitHub Actions<br/>jupyter lite build"]
+    pages["GitHub Pages<br/>marcocaggioni.github.io/jupyterlite-r2"]
+    lite["JupyterLite<br/>(in the browser)"]
+    worker["Cloudflare Worker<br/>jupyter-drive<br/>jupyter-drive.marco-caggioni.workers.dev"]
+    r2["Cloudflare R2<br/>bucket jupyter-lite"]
+    pyodide["jsDelivr CDN<br/>Pyodide runtime (pyodide.js + WASM)<br/>cdn.jsdelivr.net/pyodide/v314.0.0"]
+    pypi["Site-local piplite index<br/>Python packages"]
+    raw["raw.githubusercontent.com<br/>public notebooks (read-only)"]
+
+    repo -->|push to main| actions
+    actions -->|deploys static site| pages
+    pages -->|serves| lite
+    lite -->|REST: public reads,<br/>shared-secret writes| worker
+    worker -->|BUCKET bucket binding| r2
+    lite -->|fetches at kernel start| pyodide
+    lite -->|%pip install| pypi
+    raw -.->|?fromURL=| lite
+```
+
+How to read it: GitHub hosts the source and builds the static site;
+GitHub Pages serves it; the running JupyterLite talks to the Cloudflare
+Worker for the living drive, and the Worker is the only thing that talks
+to the R2 bucket (via the `BUCKET` binding — no R2 keys ever reach a
+browser). The Pyodide kernel runtime itself does not come from GitHub
+Pages or Cloudflare: it is fetched at kernel start from the jsDelivr
+CDN (`pyodideUrl` default of `jupyterlite-pyodide-kernel` 0.8.0; the
+site does not override it), while `%pip install` packages come from the
+site's own local piplite index. Frozen GitHub notebooks arrive via
+`?fromURL=` from `raw.githubusercontent.com` and are never written back.
+
 ## Try it
 
 Open <https://marcocaggioni.github.io/jupyterlite-r2> — the Drive Browser
