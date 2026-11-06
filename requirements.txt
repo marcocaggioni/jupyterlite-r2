@@ -47,7 +47,9 @@ bqplot
 # (replaces the jupyterlab-github bridge, which is read-only AND broken in Lite;
 # raw.githubusercontent.com serves CORS headers, so ?fromURL= just works)
 jupyterlab-open-url-parameter==0.4.0
-# R2-backed living drive (spike): client-side S3 drive — endpoint -> R2,
-# credentials in Settings -> Credentials Provider (never in config).
-# Requires JupyterLab >= 4.2.5; CORS policy required on the bucket.
-jupydrive_s3==0.1.0
+# R2-backed living drive: custom IDrive talking to the jupyter-drive
+# Cloudflare Worker (public reads, shared-secret writes; the Worker holds
+# the R2 credentials, the browser never sees them). Prebuilt wheel
+# committed under vendor/ (source in extensions/jupyter-drive-s3/);
+# rebuild the wheel there after changing the TypeScript source.
+./vendor/jupyter_drive_s3-0.1.0-py3-none-any.whl
