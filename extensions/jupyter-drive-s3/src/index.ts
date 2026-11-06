@@ -249,6 +249,39 @@ const defaultFileBrowser: JupyterFrontEndPlugin<IDefaultFileBrowser> = {
       }
     );
 
+    // Second file browser for JupyterLite's stock local drive
+    // (browser storage / IndexedDB, per-device, not shared).
+    // It is the ContentsManager's default drive, so it is addressed
+    // with unprefixed paths: driveName ''. The drive object itself
+    // is named 'BrowserStorage', but that name is NOT a registered
+    // additional drive, so 'BrowserStorage:' paths would not resolve
+    // to it — '' is the correct driveName here.
+    const localBrowser = fileBrowserFactory.createFileBrowser(
+      'localfilebrowser',
+      {
+        auto: false,
+        restore: false,
+        driveName: ''
+      }
+    );
+
+    localBrowser.node.setAttribute('role', 'region');
+    localBrowser.node.setAttribute('aria-label', 'Local Files Section');
+    localBrowser.title.icon = folderIcon;
+    localBrowser.title.label = 'Local Files';
+    localBrowser.title.caption =
+      'Browser-only storage on this device (not shared)';
+
+    // Rank 101 puts it just below the R2 Drive Browser, which the
+    // stock filebrowser extension adds at rank 100.
+    if (labShell) {
+      labShell.add(localBrowser, 'left', { rank: 101 });
+    }
+
+    // Restore the local browser's model state under its own id.
+    await localBrowser.model.restore(localBrowser.id);
+    await localBrowser.model.refresh();
+
     // Set attributes when adding the browser to the UI.
     defaultBrowser.node.setAttribute('role', 'region');
     defaultBrowser.node.setAttribute('aria-label', 'Drive Browser Section');

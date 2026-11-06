@@ -96,8 +96,11 @@ python -m build     # wheel — replace the one in vendor/
 ```
 
 The extension replaces the default file browser with the Drive Browser
-and points at the Worker URL from its settings. No demo notebooks are
-bundled into the drive view — the drive shows the bucket contents.
+and points at the Worker URL from its settings. The drive shows the
+bucket contents. A second sidebar panel, **Local Files**, shows
+JupyterLite's stock browser-storage drive (IndexedDB, per-device, not
+shared) — the bundled demo notebooks live there. The R2 Drive Browser
+stays the default.
 
 ### 2. The Worker
 
@@ -148,6 +151,11 @@ that one constant if your site lives elsewhere.
   the bucket contents, Settings shows the Worker URL prefilled with no
   S3/key/region fields, and no errors. The write path (PUT/DELETE with
   the secret) is exercised by the plugin, not by a server-side test.
+- `jupyter-drive-s3` 0.1.2 (Nov 6, 2026): adds a second sidebar panel,
+  Local Files, for the browser-storage drive (the ContentsManager
+  default drive, addressed with unprefixed paths — the drive object is
+  named `BrowserStorage`, but that name is not a registered additional
+  drive). The R2 Drive Browser is unchanged and stays the default.
 
 ## GitHub side (frozen content)
 
