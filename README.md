@@ -9,24 +9,9 @@ template, but it is no longer a demo: the file browser is a living drive
 backed by a Cloudflare R2 bucket, so notebooks and files live in shared
 cloud storage instead of only in the browser.
 
-## The idea
-
-A JupyterLite site with two ways to get content:
-
-- **A living drive** — an R2-backed shared hard drive. Notebooks (already
-  JSON), data files, images, PDFs, folders. Anything you save goes to the
-  bucket, and any JupyterLite install with the drive plugin sees the same
-  drive. Reading is public — no login, no keys. Saving goes through a
-  Cloudflare Worker that holds the bucket keys and checks a shared secret,
-  so no R2 credentials ever reach a browser.
-- **Frozen content from GitHub** — open any public GitHub-hosted notebook
-  read-only with `?fromURL=` (see below). Nothing is written back to
-  GitHub.
-
-Details, the implementation, and how to install the drive plugin in your
-own JupyterLite: [docs/r2-drive.md](docs/r2-drive.md).
-
 ## Architecture
+
+![Architecture diagram](https://raw.githubusercontent.com/marcocaggioni/jupyterlite-r2/main/docs/architecture.png)
 
 ```mermaid
 flowchart TD
@@ -60,6 +45,23 @@ CDN (`pyodideUrl` default of `jupyterlite-pyodide-kernel` 0.8.0; the
 site does not override it), while `%pip install` packages come from the
 site's own local piplite index. Frozen GitHub notebooks arrive via
 `?fromURL=` from `raw.githubusercontent.com` and are never written back.
+
+## The idea
+
+A JupyterLite site with two ways to get content:
+
+- **A living drive** — an R2-backed shared hard drive. Notebooks (already
+  JSON), data files, images, PDFs, folders. Anything you save goes to the
+  bucket, and any JupyterLite install with the drive plugin sees the same
+  drive. Reading is public — no login, no keys. Saving goes through a
+  Cloudflare Worker that holds the bucket keys and checks a shared secret,
+  so no R2 credentials ever reach a browser.
+- **Frozen content from GitHub** — open any public GitHub-hosted notebook
+  read-only with `?fromURL=` (see below). Nothing is written back to
+  GitHub.
+
+Details, the implementation, and how to install the drive plugin in your
+own JupyterLite: [docs/r2-drive.md](docs/r2-drive.md).
 
 ## Try it
 
