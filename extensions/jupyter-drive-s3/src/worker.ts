@@ -10,6 +10,12 @@
 //   PUT  /api/file/<key>                  -> upload, needs x-write-secret
 //   DELETE /api/file/<key>                -> delete, needs x-write-secret
 //
+// GET/HEAD /api/file/<key> returns the object's R2 upload date as a
+// Last-Modified header, and PUT returns it as `uploaded` in the JSON
+// body. The drive uses that real date for last_modified instead of
+// fabricating "now" — the fabricated date made JupyterLab report the
+// file as changed on disk on nearly every save.
+//
 // The Worker holds the R2 credentials (bucket binding), so the browser never
 // sees any R2 keys. Public reads need no secret; writes send the shared
 // WRITE_SECRET in the x-write-secret header.
@@ -275,12 +281,24 @@ export const getWorkerFileContents = async (
     size = parseInt(contentLength, 10);
   }
 
-  // The Worker file endpoint does not expose the object's upload date,
-  // so the current time is used; listings carry the real date.
+  // The Worker returns the object's real upload date as a Last-Modified
+  // header. Use it: fabricating "now" here made JupyterLab think the
+  // file changed on disk on nearly every save (its conflict check flags
+  // disk time > 500 ms newer than the client's). Fall back to now only
+  // if the header is absent or unparsable.
+  let lastModified = new Date().toISOString();
+  const lastModifiedHeader = response.headers.get('last-modified');
+  if (lastModifiedHeader) {
+    const parsed = new Date(lastModifiedHeader);
+    if (!Number.isNaN(parsed.getTime())) {
+      lastModified = parsed.toISOString();
+    }
+  }
+
   data = {
     name: PathExt.basename(path),
     path,
-    last_modified: new Date().toISOString(),
+    last_modified: lastModified,
     created: '',
     content: fileContents,
     format: fileFormat as Contents.FileFormat,
@@ -335,6 +353,11 @@ export const createWorkerObject = async (
     body = Private.formatBody(options, fileFormat, fileType, fileMimeType);
   }
 
+  // A content-less save (DriveFS mknod for a brand-new file) can still
+  // arrive with no body. Never send undefined: it PUTs an empty object
+  // and then crashes on body.size below, hanging the kernel.
+  body = body ?? '';
+
   const headers: Record<string, string> = {
     'x-write-secret': writeSecret
   };
@@ -343,13 +366,33 @@ export const createWorkerObject = async (
   }
   // A Blob body already carries its own content type.
 
-  await workerFetch(workerUrl, `/api/file/${encodeURIComponent(key)}`, {
-    method: 'PUT',
-    headers,
-    body: body as BodyInit
-  });
+  const putResponse = await workerFetch(
+    workerUrl,
+    `/api/file/${encodeURIComponent(key)}`,
+    {
+      method: 'PUT',
+      headers,
+      body: body as BodyInit
+    }
+  );
 
-  const lastModified = new Date().toISOString();
+  // The Worker returns the object's real R2 upload time in the PUT
+  // response. Use it for last_modified: fabricating "now" made
+  // JupyterLab think the file changed on disk on nearly every save
+  // (its conflict check flags disk time > 500 ms newer than the
+  // client's). Fall back to now if the server doesn't provide one.
+  let lastModified = new Date().toISOString();
+  try {
+    const putResult = (await putResponse.json()) as { uploaded?: string };
+    if (putResult.uploaded) {
+      const parsed = new Date(putResult.uploaded);
+      if (!Number.isNaN(parsed.getTime())) {
+        lastModified = parsed.toISOString();
+      }
+    }
+  } catch {
+    // Keep the fallback.
+  }
 
   data = {
     name,
@@ -742,7 +785,11 @@ namespace Private {
 
       body = new Blob(byteArrays, { type: fileMimeType });
     } else {
-      body = options.content;
+      // A content-less save (DriveFS mknod for a brand-new file) arrives
+      // with options.content undefined. Treat it as an empty file:
+      // passing undefined through PUTs an empty object to R2 and then
+      // crashes on body.size in createWorkerObject, hanging the kernel.
+      body = options.content ?? '';
     }
     return body;
   }

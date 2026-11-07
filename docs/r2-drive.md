@@ -160,6 +160,16 @@ that one constant if your site lives elsewhere.
   restore/refresh is fire-and-forget instead of awaited inside the
   default-file-browser activation — 0.1.2 left the whole app stuck on
   "Loading JupyterLite..." whenever the local-drive listing stalled.
+- `jupyter-drive-s3` 0.1.4 (Nov 7, 2026): kernel writes to R2 fixed.
+  A content-less save (DriveFS mknod for a brand-new file) no longer
+  PUTs an empty object and then crashes on `body.size`, hanging the
+  kernel — the plugin treats an undefined body as an empty file before
+  the PUT. And `last_modified` is now the object's real R2 upload date
+  (Worker returns it as a `Last-Modified` header on GET/HEAD and as
+  `uploaded` in the PUT response) instead of a fabricated "now", which
+  made JupyterLab report the file as changed on disk on nearly every
+  save. The Worker change needs deploying in the Cloudflare dashboard;
+  the plugin half ships in this release.
 
 ## GitHub side (frozen content)
 
