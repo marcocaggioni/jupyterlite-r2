@@ -170,6 +170,16 @@ that one constant if your site lives elsewhere.
   made JupyterLab report the file as changed on disk on nearly every
   save. The Worker change needs deploying in the Cloudflare dashboard;
   the plugin half ships in this release.
+- `jupyter-drive-s3` 0.1.5 (Nov 7, 2026): two-way, selection-scoped
+  copy between the drives. In Local Files, right-click (or Command
+  Palette) "Copy to R2 Drive"; in the R2 Drive Browser, "Copy to
+  Local Files". Folders recurse, existing files are overwritten,
+  nothing is deleted on either side, and a short dialog reports how
+  many files were copied (or, for Local → R2, that the write secret
+  is not set, in plain words). One shared get()+save() routine, so
+  text, notebooks and binary files go through the same fixed save/get
+  paths as a normal save. No automatic sync, no whole-tree copy, no
+  delete propagation.
 
 ## GitHub side (frozen content)
 

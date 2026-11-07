@@ -52,4 +52,4 @@ jupyterlab-open-url-parameter==0.4.0
 # the R2 credentials, the browser never sees them). Prebuilt wheel
 # committed under vendor/ (source in extensions/jupyter-drive-s3/);
 # rebuild the wheel there after changing the TypeScript source.
-./vendor/jupyter_drive_s3-0.1.4-py3-none-any.whl
+./vendor/jupyter_drive_s3-0.1.5-py3-none-any.whl

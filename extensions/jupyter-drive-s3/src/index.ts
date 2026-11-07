@@ -20,9 +20,14 @@ import {
 } from '@jupyterlab/application';
 import {
   createToolbarFactory,
+  Dialog,
+  ICommandPalette,
   IToolbarWidgetRegistry,
-  setToolbar
+  setToolbar,
+  showDialog
 } from '@jupyterlab/apputils';
+import { PathExt } from '@jupyterlab/coreutils';
+import { Contents } from '@jupyterlab/services';
 import {
   IDefaultFileBrowser,
   IFileBrowserFactory,
@@ -51,6 +56,8 @@ namespace CommandIDs {
   export const openPath = 'filebrowser:open-path';
   export const toggleBrowser = 'filebrowser:toggle-main';
   export const rename = 'drives:rename';
+  export const copyToR2 = 'drives:copy-to-r2';
+  export const copyToLocal = 'drives:copy-to-local';
 }
 
 const FILE_BROWSER_FACTORY = 'DriveBrowser';
@@ -215,14 +222,15 @@ const defaultFileBrowser: JupyterFrontEndPlugin<IDefaultFileBrowser> = {
   description: 'The default file browser factory provider',
   provides: IDefaultFileBrowser,
   requires: [IFileBrowserFactory, IWorkerAuth],
-  optional: [IRouter, JupyterFrontEnd.ITreeResolver, ILabShell],
+  optional: [IRouter, JupyterFrontEnd.ITreeResolver, ILabShell, ICommandPalette],
   activate: async (
     app: JupyterFrontEnd,
     fileBrowserFactory: IFileBrowserFactory,
     workerAuth: IWorkerAuth,
     router: IRouter | null,
     tree: JupyterFrontEnd.ITreeResolver | null,
-    labShell: ILabShell | null
+    labShell: ILabShell | null,
+    palette: ICommandPalette | null
   ): Promise<IDefaultFileBrowser> => {
     const { commands } = app;
     const auth = await workerAuth.factory();
@@ -336,6 +344,85 @@ const defaultFileBrowser: JupyterFrontEndPlugin<IDefaultFileBrowser> = {
       icon: editIcon.bindprops({ stylesheet: 'menuItem' }),
       label: 'Rename',
       mnemonic: 0
+    });
+
+    // Copy the current selection to the other drive (Local Files <->
+    // R2 Drive). One shared routine, source/target swapped: contents
+    // are read from the source drive with get() and written to the
+    // target with save(), so binary files, notebooks and text all go
+    // through the same fixed save/get paths as a normal save (base64
+    // decode on PUT, empty-body guard, real last_modified). Folders
+    // recurse; existing files are overwritten; nothing is deleted
+    // on either side. ContentsManager.copy() cannot do this — it
+    // throws for cross-drive copies.
+    const copySelection = async (
+      targetDriveName: string,
+      targetBrowser: FileBrowser,
+      targetLabel: string
+    ): Promise<void> => {
+      const widget = fileBrowserFactory.tracker.currentWidget;
+      if (!widget) {
+        return;
+      }
+      const items = Array.from(widget.selectedItems());
+      if (items.length === 0) {
+        return;
+      }
+      try {
+        const copied = await Private.copyItemsToDrive(
+          app.serviceManager.contents,
+          items,
+          targetDriveName
+        );
+        // Refresh the target panel so the new files show up.
+        await targetBrowser.model.refresh();
+        void showDialog({
+          title: `Copy to ${targetLabel}`,
+          body: `Copied ${copied} file${copied === 1 ? '' : 's'} to ${targetLabel}.`,
+          buttons: [Dialog.okButton()]
+        });
+      } catch (error) {
+        void showDialog({
+          title: 'Copy failed',
+          body: Private.copyErrorMessage(error),
+          buttons: [Dialog.okButton()]
+        });
+      }
+    };
+
+    app.commands.addCommand(CommandIDs.copyToR2, {
+      execute: () =>
+        copySelection(WorkerDrive.name, defaultBrowser, 'R2 Drive'),
+      isVisible: () =>
+        !!fileBrowserFactory.tracker.currentWidget &&
+        fileBrowserFactory.tracker.currentWidget.model.driveName === '' &&
+        Array.from(fileBrowserFactory.tracker.currentWidget.selectedItems())
+          .length > 0,
+      label: 'Copy to R2 Drive',
+      mnemonic: 0
+    });
+
+    app.commands.addCommand(CommandIDs.copyToLocal, {
+      execute: () => copySelection('', localBrowser, 'Local Files'),
+      isVisible: () =>
+        !!fileBrowserFactory.tracker.currentWidget &&
+        fileBrowserFactory.tracker.currentWidget.model.driveName ===
+          WorkerDrive.name &&
+        Array.from(fileBrowserFactory.tracker.currentWidget.selectedItems())
+          .length > 0,
+      label: 'Copy to Local Files',
+      mnemonic: 0
+    });
+
+    // Command palette entries (context-menu entries live in
+    // schema/file-browser-toolbar.json).
+    palette?.addItem({
+      command: CommandIDs.copyToR2,
+      category: 'File Browser'
+    });
+    palette?.addItem({
+      command: CommandIDs.copyToLocal,
+      category: 'File Browser'
     });
 
     void Private.restoreBrowser(
@@ -477,5 +564,142 @@ namespace Private {
       }
     };
     router.routed.connect(listener);
+  }
+
+  /**
+   * The global (drive-prefixed) form of a drive-relative path.
+   * The default (local) drive takes the bare path.
+   */
+  function toGlobalPath(driveName: string, localPath: string): string {
+    const cleaned = PathExt.removeSlash(localPath);
+    return driveName ? `${driveName}:${cleaned}` : cleaned;
+  }
+
+  /**
+   * Copy the selected items of one file browser to the other drive,
+   * preserving each item's path relative to its drive root. Returns
+   * the number of files copied (folders themselves are not counted).
+   * Existing files on the target are overwritten.
+   */
+  export async function copyItemsToDrive(
+    contents: Contents.IManager,
+    items: Contents.IModel[],
+    targetDriveName: string
+  ): Promise<number> {
+    let copied = 0;
+    for (const item of items) {
+      const targetPath = toGlobalPath(
+        targetDriveName,
+        contents.localPath(item.path)
+      );
+      copied += await copyOne(contents, item.path, targetPath, targetDriveName);
+    }
+    return copied;
+  }
+
+  /**
+   * Copy one item (file or folder) from a global source path to a
+   * global target path. Folders recurse; the target folder is
+   * created on the local drive (R2 folders are implicit key
+   * prefixes, so nothing needs creating there).
+   */
+  async function copyOne(
+    contents: Contents.IManager,
+    sourcePath: string,
+    targetPath: string,
+    targetDriveName: string
+  ): Promise<number> {
+    const model = await contents.get(sourcePath, { content: true });
+    if (model.type === 'directory') {
+      await ensureDirectory(contents, targetPath, targetDriveName);
+      let copied = 0;
+      for (const child of model.content ?? []) {
+        copied += await copyOne(
+          contents,
+          child.path,
+          PathExt.join(targetPath, child.name),
+          targetDriveName
+        );
+      }
+      return copied;
+    }
+    // Reuse the normal save path, with the format the source drive
+    // returned: 'text' for text, 'base64' for binary (decoded on
+    // PUT to R2 by the 0.1.1 fix), 'json' for notebooks. The target
+    // drive's save handles each the same way a manual save does.
+    await ensureParentDirectories(contents, targetPath, targetDriveName);
+    await contents.save(targetPath, {
+      type: model.type,
+      format: model.format,
+      content: model.content,
+      mimetype: model.mimetype
+    });
+    return 1;
+  }
+
+  /**
+   * Make sure a directory exists on the target drive. No-op for R2
+   * (folders are implicit); on the local drive, create it with
+   * newUntitled + rename, creating parents first as needed.
+   */
+  async function ensureDirectory(
+    contents: Contents.IManager,
+    targetPath: string,
+    targetDriveName: string
+  ): Promise<void> {
+    if (targetDriveName === DRIVE_NAME) {
+      return;
+    }
+    try {
+      await contents.get(targetPath);
+      return;
+    } catch {
+      // Does not exist yet; create it below.
+    }
+    const parent = PathExt.dirname(targetPath);
+    if (parent && parent !== '.' && parent !== targetPath) {
+      await ensureDirectory(contents, parent, targetDriveName);
+    }
+    const created = await contents.newUntitled({
+      ...(parent && parent !== '.'
+        ? { path: parent }
+        : {}),
+      type: 'directory'
+    });
+    await contents.rename(created.path, targetPath);
+  }
+
+  /**
+   * Make sure the parent folders of a target file path exist on the
+   * target drive. No-op for R2 and for files at the drive root.
+   */
+  async function ensureParentDirectories(
+    contents: Contents.IManager,
+    targetPath: string,
+    targetDriveName: string
+  ): Promise<void> {
+    const parent = PathExt.dirname(targetPath);
+    if (!parent || parent === '.' || parent === targetPath) {
+      return;
+    }
+    await ensureDirectory(contents, parent, targetDriveName);
+  }
+
+  /**
+   * Plain-words explanation of a copy failure. A 401 from the Worker
+   * means the write secret is not set (Local -> R2 writes are the
+   * only direction that needs it).
+   */
+  export function copyErrorMessage(error: unknown): string {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('401')) {
+      return (
+        'Copy failed: the R2 write secret is not set, so the Worker ' +
+        'refused the upload (401). Open Settings and enter the write ' +
+        'secret for jupyter-drive-s3, then try again. (Copying from ' +
+        'R2 to Local Files never needs the secret.)'
+      );
+    }
+    return `Copy failed: ${message}`;
   }
 }
