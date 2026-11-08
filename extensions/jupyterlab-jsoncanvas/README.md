@@ -5,17 +5,26 @@ files in JupyterLab / JupyterLite.
 
 Double-click a `.canvas` file and the board renders: text cards (Markdown),
 file cards (vault path label), link cards (clickable), group containers, and
-edges with arrowheads — with pan, zoom, and fit-to-view. Nothing is editable
+edges with arrowheads — with pan, zoom, and fit-to-view, a minimap, and
+light / dark themes following JupyterLab. Nothing is editable
 and nothing is saved back; the file is only read.
+
+Rendering is done by the [Hesprs JSON Canvas Viewer](https://github.com/Hesprs/JSON-Canvas-Viewer)
+(`json-canvas-viewer` on npm, MIT), which implements 100% of the JSON
+Canvas 1.0 spec. This extension only wires the library into JupyterLab:
+file-type registration, the document widget, feeding the parsed `.canvas`
+JSON to the viewer, and error handling. File-node attachments are not
+remapped, so a referenced file shows as a placeholder rather than a
+preview.
 
 ## Spec
 
-Implements JSON Canvas 1.0: `nodes` / `edges` arrays, node types `text`,
-`file`, `link`, `group`, edge sides (`top` / `right` / `bottom` / `left`),
-ends (`none` / `arrow`), labels, and preset (`"1"`–`"6"`) or hex colors.
-Render order follows the array order. Files that fail to parse, or nodes /
-edges that do not validate, are reported in the viewer instead of crashing
-it.
+Rendering follows JSON Canvas 1.0 via the Hesprs library: `nodes` /
+`edges` arrays, node types `text`, `file`, `link`, `group`, edge sides
+(`top` / `right` / `bottom` / `left`), ends (`none` / `arrow`), labels,
+and preset (`"1"`–`"6"`) or hex colors. Files that fail to parse, or are
+not JSON objects with `nodes` / `edges` arrays, are reported in the
+viewer instead of crashing it.
 
 ## Build
 
