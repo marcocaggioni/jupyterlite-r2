@@ -1,0 +1,175 @@
+/* Styles for the JSON Canvas viewer. Uses JupyterLab theme variables so
+   the board follows the active light / dark theme. */
+
+.jp-JSONCanvas {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--jp-layout-color0);
+  outline: none;
+}
+
+.jp-JSONCanvas-viewport {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  background-image: radial-gradient(
+    circle,
+    var(--jp-border-color2) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+
+.jp-JSONCanvas-viewport.jp-JSONCanvas-panning {
+  cursor: grabbing;
+}
+
+.jp-JSONCanvas-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.jp-JSONCanvas-edges {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+}
+
+.jp-JSONCanvas-edgeLabel {
+  font-size: 12px;
+  fill: var(--jp-ui-font-color1);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  paint-order: stroke;
+  stroke: var(--jp-layout-color0);
+  stroke-width: 3px;
+}
+
+.jp-JSONCanvas-cards {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.jp-JSONCanvas-card {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 6px;
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color0);
+  box-shadow: var(--jp-elevation-z2);
+}
+
+.jp-JSONCanvas-card-group {
+  background: var(--jp-layout-color0);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.jp-JSONCanvas-cardBody {
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  overflow: auto;
+  overflow-wrap: break-word;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.jp-JSONCanvas-cardBody p:first-child {
+  margin-top: 0;
+}
+
+.jp-JSONCanvas-cardBody p:last-child {
+  margin-bottom: 0;
+}
+
+.jp-JSONCanvas-cardKind {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--jp-ui-font-color2);
+  margin-bottom: 4px;
+}
+
+.jp-JSONCanvas-filePath {
+  font-family: var(--jp-code-font-family);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.jp-JSONCanvas-cardBody a {
+  color: var(--jp-brand-color1);
+  word-break: break-all;
+}
+
+.jp-JSONCanvas-groupLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jp-ui-font-color0);
+}
+
+.jp-JSONCanvas-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--jp-border-color1);
+  border-radius: 6px;
+  background: var(--jp-layout-color1);
+  box-shadow: var(--jp-elevation-z2);
+  z-index: 10;
+}
+
+.jp-JSONCanvas-toolbarButton {
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--jp-ui-font-color0);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.jp-JSONCanvas-toolbarButton:hover {
+  background: var(--jp-layout-color2);
+}
+
+.jp-JSONCanvas-zoomLabel {
+  min-width: 44px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-JSONCanvas-error {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  max-width: 80%;
+  padding: 6px 10px;
+  border: 1px solid var(--jp-error-color1);
+  border-radius: 6px;
+  background: var(--jp-layout-color1);
+  color: var(--jp-error-color1);
+  font-size: 12px;
+  z-index: 10;
+}

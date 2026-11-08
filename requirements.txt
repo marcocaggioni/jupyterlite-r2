@@ -53,3 +53,7 @@ jupyterlab-open-url-parameter==0.4.0
 # committed under vendor/ (source in extensions/jupyter-drive-s3/);
 # rebuild the wheel there after changing the TypeScript source.
 ./vendor/jupyter_drive_s3-0.1.5-py3-none-any.whl
+# JSON Canvas viewer: read-only renderer for .canvas files. Prebuilt wheel
+# committed under vendor/ (source in extensions/jupyterlab-jsoncanvas/);
+# rebuild the wheel there after changing the TypeScript source.
+./vendor/jupyterlab_jsoncanvas-0.1.0-py3-none-any.whl
