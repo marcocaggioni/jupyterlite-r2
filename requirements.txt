@@ -57,4 +57,4 @@ jupyterlab-open-url-parameter==0.4.0
 # of text cards. Prebuilt wheel
 # committed under vendor/ (source in extensions/jupyterlab-jsoncanvas/);
 # rebuild the wheel there after changing the TypeScript source.
-./vendor/jupyterlab_jsoncanvas-0.4.0-py3-none-any.whl
+./vendor/jupyterlab_jsoncanvas-0.4.1-py3-none-any.whl
